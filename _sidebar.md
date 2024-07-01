@@ -8,6 +8,9 @@
     * [1.1.2硬件工程师](hardware/pcb/硬件工程师.md)
     * [1.1.3PCB](hardware/pcb/PCB.md)
     * [1.1.4PCB学习路线](hardware/pcb/PCB学习路线.md)
+  * **1.2电路**
+    * [1.2.1模拟电路](hardware/ele/模拟电路.md)
+    * [1.2.2数字电路](hardware/ele/数字电路.md)
 * **2.嵌入式软件**
   * **2.1嵌入式单片机**
     * [2.1.1C语言](software/scm/C语言.md)
