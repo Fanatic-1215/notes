@@ -23,3 +23,6 @@
     * [2.3.1bs架构](software/interface//bs架构.md)
   * **2.4算法**
     * [2.4.1卡尔曼滤波算法](software/count//Kalman%20Filter.md)
+* * **3.人工智能**  
+  * **3.1环境搭建**
+    * [3.1.1环境搭建](ai/环境搭建.md)
