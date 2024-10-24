@@ -1,3 +1,5 @@
+各种算法
+
 ![image-20240519145438394](C:\Users\fan\AppData\Roaming\Typora\typora-user-images\image-20240519145438394.png)
 
 <img src="C:\Users\fan\AppData\Roaming\Typora\typora-user-images\image-20240519155218873.png" alt="image-20240519155218873" style="zoom:50%;" />
@@ -90,21 +92,50 @@ int main() {
 ### 一.控制算法
 
 1. **PID 控制**
+
    - **描述**：比例-积分-微分控制器（PID）是最常见的控制算法之一，广泛应用于温度控制、速度控制等。
+
    - **实现**：通过调整比例、积分和微分系数来优化系统响应。
+
+     ~~~c
+     arm_pid_instance_f32 pid;  // PID 实例
+     void test_pid_control_setup() {
+       pid.Kp = 1.0f;        // 比例增益，当前，根据经验
+       pid.Ki = 0.5f;        // 积分增益，过去，3-5次接近静态误差即可
+       pid.Kd = 0.1f;        // 微分增益，未来，当出现小幅震荡时减小30%
+       arm_pid_init_f32(&pid, 1);  // 初始化 PID，1 表示是否启用积分
+     }
+     
+     void test_pid_control_loop(float setpoint, float input) {
+       float32_t output = arm_pid_f32(&pid, setpoint-input);
+       printf("output: %f\n", output);
+     }
+     ~~~
+
+     
+
 2. **模糊控制**
+
    - **描述**：基于模糊逻辑的控制方法，适用于不确定性较高的系统。
    - **实现**：使用模糊规则和推理机制来进行控制决策。
+
 3. **状态空间控制**
+
    - **描述**：通过状态空间模型描述系统动态，适用于多输入多输出（MIMO）系统。
    - **实现**：使用状态反馈和观测器设计来控制系统。
+
 4. **自适应控制**
+
    - **描述**：能够根据系统的变化自动调整控制参数。
    - **实现**：使用算法（如模型参考自适应控制）来实时更新控制参数。
+
 5. **滑模控制**
+
    - **描述**：一种鲁棒控制方法，适用于非线性系统。
    - **实现**：通过设计滑模面和控制律来实现系统的跟踪和稳定。
+
 6. **最优控制**
+
    - **描述**：通过优化某个性能指标（如最小能耗、最小时间）来设计控制策略。
    - **实现**：常用的算法包括线性二次调节器（LQR）。
 
@@ -149,7 +180,7 @@ int main() {
            // 模拟输入
            arm_fir_init_f32(&firInstance, NUM_TAPS, firCoeffs, firState, 0);
            for (int i = 0; i < 1024; i++) {
-               // 生成 10 Hz 正弦波和 100 Hz 余弦波
+               // 生成 40 Hz 正弦波和 10 Hz 余弦波
                firInput[i] =  ((10*arm_sin_f32(2.0f * PI * 40.0f * i / 1024.0f)) + arm_cos_f32(2.0f * PI * 10.0f  * i / 1024.0f));
                printf("firInput:%f\n",firInput[i]);
                arm_fir_f32(&firInstance, &firInput[i], &firOutput[i], 1);
@@ -177,12 +208,64 @@ int main() {
        print(fir_coeffs)
        ~~~
 
-       
+       滤波效果
+
+       ![Snipaste_2024-10-24_15-16-58](C:\Users\fan\Music\Notes\note_git\imgs\Snipaste_2024-10-24_15-16-58.png)
 
    - IIR（无限冲击响应）滤波器
 
      - **描述**：具有反馈结构的数字滤波器，能够实现更高的滤波性能。
+
      - **实现**：通过设计适当的递归系数来实现滤波。
+
+       ~~~c
+       #define NUM_TAPS_IIR 7  // 滤波器系数数量
+       // 定义 IIR 滤波器系数（示例系数，需根据设计计算）
+       float32_t iirCoeffs[NUM_TAPS_IIR] = {
+            0.00065395f,  0.f,-0.00196184f,0.f,0.00196184f,  0.f,-0.00065395  // 这里的系数需要根据设计进行调整
+       };
+       // 定义 IIR 滤波器状态
+       float32_t iirState[NUM_TAPS_IIR];
+       // 创建 IIR 滤波器实例
+       arm_biquad_casd_df1_inst_f32 iirInstance = {0};
+       float32_t iirInput[1024]; // 输入信号
+       float32_t iirOutput[1024]; // 输出信号
+       void test_iir(){
+           // 初始化 IIR 滤波器
+           arm_biquad_cascade_df1_init_f32(&iirInstance, 1, iirCoeffs, iirState);  
+           for (int i = 0; i < 1024; i++) {
+               // 生成 40 Hz 正弦波和 10 Hz 余弦波
+               iirInput[i] =  ((10*arm_sin_f32(2.0f * PI * 40.0f * i / 1024.0f)) + arm_cos_f32(2.0f * PI * 10.0f  * i / 1024.0f));
+               printf("iirInput:%f\n",iirInput[i]);
+               // 处理输入信号
+               arm_biquad_cascade_df1_f32(&iirInstance, &iirInput[i], &iirOutput[i], 1);
+           }
+           for (int i = 0; i < 1024; i++) {
+               printf("iirOutput:%f\n",iirOutput[i]);
+           }
+       }
+       ~~~
+
+       ~~~python
+       from scipy.signal import butter
+       
+       # 定义滤波器参数
+       order = 2  # 滤波器阶数
+       lowcut = 30 / (1024/2)   # 通带下限（归一化频率=频率/（采样率/2）)
+       highcut = 50 / (1024/2)  # 通带上限（归一化频率=频率/（采样率/2）)
+       
+       # 计算 IIR 滤波器系数
+       b, a = butter(order, [lowcut, highcut], btype='band')
+       
+       # 打印 IIR 滤波器系数
+       print("IIR 滤波器系数 (b):", b)
+       print("IIR 滤波器系数 (a):", a)
+       
+       ~~~
+
+       滤波效果
+
+       ![Snipaste_2024-10-24_16-11-44](C:\Users\fan\Music\Notes\note_git\imgs\Snipaste_2024-10-24_16-11-44.png)
 
 4. **中值滤波**
 
