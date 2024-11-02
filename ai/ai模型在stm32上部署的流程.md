@@ -6,6 +6,8 @@
 
 ### 3.部署
 
+##### 效果:网络模型为1输入，1输出，的正弦波，通过推理得到
+
 ~~~c
 #include "stdio.h"
 
@@ -49,3 +51,54 @@ main() {
 }
 ~~~
 
+![Snipaste_2024-11-02_20-42-59](../imgs/Snipaste_2024-11-02_20-42-59.png)
+
+##### 用python在计算机验证
+
+~~~python
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+# 加载 TFLite 模型
+interpreter = tf.lite.Interpreter(model_path='C:\\Users\\fan\Desktop\\tflite-micro-main\\tensorflow\\lite\\micro\\examples\\hello_world\\tmp\\hello_world_models\\hello_world_float.tflite')
+interpreter.allocate_tensors()
+
+# 获取输入和输出张量的信息
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# 生成输入数据
+input_data = np.arange(0.01, 2 * np.pi, 0.01, dtype=np.float32)
+
+# 存储输出数据
+output_data = []
+
+# 遍历输入数据并进行推理
+for value in input_data:
+    # 设置输入数据
+    interpreter.set_tensor(input_details[0]['index'], np.array([[value]]))
+    
+    # 运行推理
+    interpreter.invoke()
+    
+    # 获取输出数据
+    output = interpreter.get_tensor(output_details[0]['index'])
+    output_data.append(output[0][0])  # 假设输出是二维数组
+
+# 将输出数据转换为 NumPy 数组
+output_data = np.array(output_data)
+
+# 绘图
+plt.plot(input_data, output_data)
+plt.title('TFLite Model Output')
+plt.xlabel('Input (radians)')
+plt.ylabel('Output')
+plt.grid()
+plt.show()
+
+~~~
+
+
+
+![Snipaste_2024-11-02_20-51-18](../imgs/Snipaste_2024-11-02_20-51-18.png)
