@@ -8,6 +8,8 @@
     * [1.1.2硬件工程师](hardware/pcb/硬件工程师.md)
     * [1.1.3PCB](hardware/pcb/PCB.md)
     * [1.1.4PCB学习路线](hardware/pcb/PCB学习路线.md)
+    * [1.1.5高级PCB-EMC](hardware/pcb/高级PCB-EMC.md)
+    * [1.1.6高级PCB-安规设计](hardware/pcb/高级PCB-安规设计.md)
   * **1.2电路**
     * [1.2.1模拟电路](hardware/ele/模拟电路.md)
     * [1.2.2数字电路](hardware/ele/数字电路.md)
