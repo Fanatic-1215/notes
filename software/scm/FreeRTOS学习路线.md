@@ -124,3 +124,51 @@ xSemaphoreTake(); // 获取
 // 10. 中断管理
 ~~~~
 
+## 二.rtthread+shell
+
+~~~c
+// board.c
+#include "main.h"
+extern UART_HandleTypeDef huart1;
+extern void MX_USART1_UART_Init(void);
+
+	MX_USART1_UART_Init();// 初始化调用
+
+void rt_hw_console_output(const char *str)
+{
+        rt_size_t i = 0, size = 0;
+        char a = '\r';
+        
+        __HAL_UNLOCK(&huart1);
+        
+        size = rt_strlen(str);
+        for (i = 0; i < size; i++)
+        {
+        if (*(str + i) == '\n')
+        {
+                HAL_UART_Transmit(&huart1, (uint8_t *)&a, 1, 1);
+        }
+                HAL_UART_Transmit(&huart1, (uint8_t *)(str + i), 1, 1);
+        }
+}
+
+char rt_hw_console_getchar(void)
+{
+        int ch = -1;
+        if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE) != RESET)
+        {
+                ch = huart1.Instance->RDR & 0xff;
+        }
+        else
+        {
+                if(__HAL_UART_GET_FLAG(&huart1, UART_FLAG_ORE) != RESET)
+                {
+                        __HAL_UART_CLEAR_OREFLAG(&huart1);
+                }
+                rt_thread_mdelay(1);
+        }
+        return ch;
+}
+
+~~~
+

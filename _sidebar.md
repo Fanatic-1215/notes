@@ -15,6 +15,7 @@
     * [1.2.2数字电路](hardware/ele/数字电路.md)
     * [1.2.3电源电路](hardware/ele/电源电路.md)
     * [1.2.4电机电路](hardware/ele/电机电路.md)
+    * [1.2.5电路基础](hardware/ele/电路基础.md)
 * **2.嵌入式软件**
   * **2.1嵌入式单片机**
     * [2.1.1C语言](software/scm/C语言.md)
@@ -28,6 +29,7 @@
     * [2.3.1bs架构](software/interface//bs架构.md)
   * **2.4算法**
     * [2.4.1信号处理](software/count/信号处理.md)
+    * [2.4.1信号调制](software/count/信号调制.md)
 * **3.人工智能**  
   * **3.1环境搭建**
     * [3.1.1环境搭建](ai/环境搭建.md)
