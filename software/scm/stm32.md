@@ -79,152 +79,44 @@ void usb_printf(const char *format, ...)
     va_end(args);
     CDC_Transmit_FS(UserTxBufferFS, length);
 }
-static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len) // usb接收
+#include "main.h"
+typedef struct {
+  const char* cmd_str;
+  void* var;
+  int type; // 0 for int, 1 for float
+} CommandMapping;
+static CommandMapping command_map[] = {
+  {"Value_Cur_Sta", &Value_Cur_Sta, 0},
+  {"Value_THD", &Value_THD, 1},
+  {"Value_FV", &Value_FV, 1},
+  {"Value_FREQUENCE", &Value_FREQUENCE, 1},
+  {"Value_JB1", &Value_JB1, 1},
+  {"Value_JB2", &Value_JB2, 1},
+};
+
+#define COMMAND_MAP_SIZE (sizeof(command_map) / sizeof(command_map[0]))
+static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  // 解析AT指令
-  static float AP = 0.2;
-  static float AI = 0.0;
-  static float AD = 0.1;
-  static float SP = 0.09;
-  static float SI = 0.002;
-  static float SD = 0.0;
-  int fanFOC_mode = 0;
-  char cmd[20] = {0};  // 增加缓冲区大小
-  char param[20] = {0}; // 增加缓冲区大小
-  if (sscanf(Buf, "AT+%19[^=]=%19[^\r\n]", cmd, param) == 2) { // 确保读取两个参数
-    usb_printf("OK\r\n");
-    if (strcmp(cmd, "MODE") == 0) {
-      fanFOC_mode = atoi(param);
-      fanFOC_set_mode(fanFOC_mode);
-    } else if (strcmp(cmd, "AP") == 0) {
-      AP = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    }else if (strcmp(cmd, "AI") == 0) {
-      AI = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    } else if (strcmp(cmd, "AD") == 0) {
-      AD = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    } else if (strcmp(cmd, "SP") == 0) {
-      SP = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    } else if (strcmp(cmd, "SI") == 0) {
-      SI = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    } else if (strcmp(cmd, "SD") == 0) {
-      SD = atof(param);
-      fanFOC_set_PID(AP,AI,AD,\
-        SP,SI,SD,\
-        0,0,0);
-    } else if(strcmp(cmd, "ANGLE") == 0) {
-      set_angle = atoi(param);
-    } else if (strcmp(cmd, "SPEED") == 0) {
-      set_speed = atoi(param);
-    }else {
-      usb_printf("Invalid AT command: %s\n", cmd);
-    }
-  } else {
-      usb_printf("Invalid AT command format: %s\n", Buf);
-  }
-  memset(cmd, 0, sizeof(cmd));
-  memset(param, 0, sizeof(param));
-
-
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-
-  return (USBD_OK);
-  /* USER CODE END 6 */
-}
-
-// 2.短按加长按下开机功能
-
-xTaskCreate(key_task_enter, "KEY_TASK", 128, NULL, 15, NULL);
-int start_flag = 0;
-void key_task_enter(void const * argument) {
-    while(1) {
-      if (start_flag == 0)
-      {  
-        if (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) { // 按键被按下
-            display(30); // 短按时点亮4个LED
-
-            // 等待按键释放
-            while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) {
-                vTaskDelay(10); // 任务延迟，避免占用CPU
-            }        
-            
-            display(8); // 短按时点亮所有LED    
-            while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_SET) {
-                vTaskDelay(10); // 任务延迟，避免占用CPU
-            }
-            for (int i = 0; i < 4; i++) {
-                // 检查按键是否仍然被按下
-                while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) { 
-                    display(i+21);                 
-                    if (i == 3)
-                    {
-                        start_flag = 1;
-                        break; // 退出内层循环，继续点亮下一个 LED
-                    }
-                    vTaskDelay(200); // 等待 100ms
-
-                    
-                    break; // 退出内层循环，继续点亮下一个 LED
-                }
-                // 如果按键被松开，熄灭所有 LED
-                if (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_SET) {
-                    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-                    display(8);
-                }
-            }
-        }
-        vTaskDelay(300); // 防止任务过于频繁运行
-      } else {
-        if (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) { // 按键被按下
-            display(8); // 短按时点亮4个LED
-
-            // 等待按键释放
-            while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) {
-                vTaskDelay(10); // 任务延迟，避免占用CPU
-            }        
-            display(30); // 短按时点亮所有LED    
-            while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_SET) {
-                vTaskDelay(10); // 任务延迟，避免占用CPU
-            }
-            for (int i = 4; i >= 0; i--) {
-                // 检查按键是否仍然被按下
-                while (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_RESET) {
-                    display(i+20);
-                    if (i == 0)
-                    {
-                        start_flag = 0;
-                        break; // 退出内层循环，继续点亮下一个 LED
-                    }
-                    vTaskDelay(200); // 等待 100ms
-                    
-                    break; // 退出内层循环，继续点亮下一个 LED
-                }
-                // 如果按键被松开，熄灭所有 LED
-                if (HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin) == GPIO_PIN_SET) {
-                    display(8);
-                }
-            }
-        }
-        vTaskDelay(300); // 防止任务过于频繁运行
+  char cmd[20] = {0};  
+  char param[20] = {0}; 
+  if (sscanf((char*)Buf, "AT+%19[^=]=%19[^\r\n]", cmd, param) == 2) { 
+      for (size_t i = 0; i < COMMAND_MAP_SIZE; i++) {
+          if (strcmp(cmd, command_map[i].cmd_str) == 0) {
+              if (command_map[i].type == 0) { // Integer
+                  *((uint8_t*)command_map[i].var) = (uint8_t)(isdigit(param[0]) ? atoi(param) : 0);
+              } else if (command_map[i].type == 1) { // Float
+                  *((float*)command_map[i].var) = (isdigit(param[0]) ? (strchr(param, '.') ? atof(param) : (float)atoi(param)) : 0);
+              }
+              usb_printf("Set %s to: %s\r\n", cmd, param);
+              break; // Exit loop once the command is found and processed
+          }
       }
   }
-      
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  return (USBD_OK);
+  /* USER CODE END 6 */
 }
 ~~~
 
@@ -238,6 +130,160 @@ int __io_putchar(int ch) {
 	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 1000);
 }
 ~~~
+
+#### 4.Makefile
+
+~~~makefile
+# 第一步：GNU Tools Arm Embedded编译gcc和openocd下载工具
+~~~
+
+~~~makefile
+# 第二步：配置Makefile
+define GCC_PATH
+"./tool/GNU Tools Arm Embedded/7 2018-q2-update/bin"
+endef
+
+define OPENOCD_PATH
+"./tool/openocd"
+endef
+
+#######################################
+# download stlink
+#######################################
+OPENOCD_INTERFACE = stlink-v2.cfg
+OPENOCD_TARGET = stm32f1x.cfg
+TARGET = make_demo1
+OPENOCD_FLASH_START = 0x08000000
+download:
+	$(OPENOCD_PATH)/bin/openocd -f $(OPENOCD_PATH)/scripts/interface/$(OPENOCD_INTERFACE) -f $(OPENOCD_PATH)/scripts/target/$(OPENOCD_TARGET) -c init -c targets -c "reset halt" -c "flash write_image erase ./$(BUILD_DIR)/$(TARGET).bin 0x08000000" -c "verify_image ./$(BUILD_DIR)/$(TARGET).bin 0x08000000 bin" -c "reset run" -c shutdown
+
+#######################################
+# download daplink
+#######################################
+OPENOCD_INTERFACE = cmsis-dap.cfg
+OPENOCD_TARGET = stm32f1x.cfg
+TARGET = make_demo1
+OPENOCD_FLASH_START = 0x08000000
+download:
+	$(OPENOCD_PATH)/bin/openocd \
+		-f $(OPENOCD_PATH)/share/openocd/scripts/interface/$(OPENOCD_INTERFACE) \
+		-c "transport select swd" \
+		-c "adapter speed 1000" \
+		-f $(OPENOCD_PATH)/share/openocd/scripts/target/$(OPENOCD_TARGET) \
+		-c "init" \
+		-c "reset halt" \
+		-c "flash write_image erase ./$(BUILD_DIR)/$(TARGET).elf" \
+		-c "reset run" \
+		-c "shutdown"
+~~~
+
+#### 5.Cmake+makefile
+
+~~~makefile
+# 第一步：在build目录下
+cmake .. -G "Unix Makefiles"
+~~~
+
+~~~makefile
+# 第二步：在build目录下配置
+#######################################
+# download
+#######################################
+define OPENOCD_PATH
+"C:/BearPi/developTools/openocd"
+endef
+OPENOCD_INTERFACE = stlink-v2.cfg
+OPENOCD_TARGET = stm32f1x.cfg
+TARGET = cmake_demo1
+OPENOCD_FLASH_START = 0x08000000
+download:
+	$(OPENOCD_PATH)/bin/openocd -f $(OPENOCD_PATH)/scripts/interface/$(OPENOCD_INTERFACE) -f $(OPENOCD_PATH)/scripts/target/$(OPENOCD_TARGET) -c "program ./$(BUILD_DIR)/$(TARGET).elf" -c "reset run" -c shutdown
+~~~
+
+~~~makefile
+# 第三步：编译下载
+make && make download
+~~~
+
+#### 6.Cmake+ninja
+
+~~~makefile
+# 编译下载
+cmake -B build -G "Ninja" 
+ninja -C build
+~~~
+
+#### 7.makefile+task.json
+
+~~~json
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "OPENOCD_PATH": "E:/env/OpenOCD-20240916-0.12.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "make",
+            "args": [
+            ],
+            "group": "build"
+        },
+        {
+            "label": "connect",
+            "type": "shell",
+            "command": "usbip",
+            "args": [
+                "attach",
+                "-r",
+                "192.168.137.33",
+                "-b",
+                "1-1"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "download",
+            "type": "shell",
+            "command": "E:/env/OpenOCD-20240916-0.12.0/bin/openocd",
+            "args": [
+                "-f",
+                "E:/env/OpenOCD-20240916-0.12.0/share/openocd/scripts/interface/cmsis-dap.cfg", 
+                "-c", "adapter speed 500",  // 关键点：设置下载速度为 1000 kHz 
+                "-f",
+                "E:/env/OpenOCD-20240916-0.12.0/share/openocd/scripts/target/stm32f1x.cfg", 
+                "-c", "init",
+                "-c", "reset halt",          // 先复位并暂停目标 
+                "-c", "flash write_image erase build/make_demo1.elf",   // 擦除后写入 
+                "-c", "reset run",           // 复位并运行 
+                "-c", "shutdown"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "build & download",
+            "type": "shell",
+            "dependsOn":["build","download"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        }
+    ]
+}
+
+~~~
+
+
 
 ### 二.知识点（基于cubeIDE）
 
