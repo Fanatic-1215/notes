@@ -19,8 +19,9 @@
 * **2.嵌入式软件**
   * **2.1嵌入式单片机**
     * [2.1.1C语言](software/scm/C语言.md)
-    * [2.1.2FreeRTOS学习路线](software/scm/FreeRTOS学习路线.md)
+    * [2.1.2FreeRTOS](software/scm/FreeRTOS学习路线.md)
     * [2.1.3stm32](software/scm/stm32.md)
+    * [2.1.4rtthead](software/scm/rtthead.md)
   * **2.2嵌入式Linux**
     * [2.2.1应用层](software/linux/应用层.md)
     * [2.2.2驱动层](software/linux/驱动层.md)
